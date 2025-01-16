@@ -1,0 +1,22 @@
+{
+  "columnMapping": {
+    "Client number": "clientNumber",
+    "Asset Type": "assetType",
+    "Asset class": "assetClass",
+    "Valor number": "valorNumber",
+    "ISIN": "isin",
+    "Bloomberg ticker": "bloombergTicker",
+    "Asset description": "assetDescription",
+    "Value in curr.": "value"
+  },
+  "compositeKeyColumns": [
+    "clientNumber",
+    "assetType",
+    "assetClass",
+    "valorNumber",
+    "isin",
+    "bloombergTicker",
+    "assetDescription"
+  ],
+  "csvValueColumn": "Value in curr."
+}

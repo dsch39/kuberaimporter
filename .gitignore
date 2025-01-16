@@ -1,0 +1,8 @@
+vendor/*
+logs/*
+data/*
+config/.env
+
+
+composer.json
+composer.lock
