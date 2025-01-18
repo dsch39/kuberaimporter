@@ -18,5 +18,6 @@
     "bloombergTicker",
     "assetDescription"
   ],
-  "csvValueColumn": "Value in curr."
+  "csvValueColumn": "value",
+  "csvAssetDescriptionColumn": "assetDescription"
 }

@@ -63,6 +63,15 @@ function sync() {
             continue;
         }
 
+
+        // Ensure compositeKeyColumns exists in config
+        $compositeKeyColumns = $config['compositeKeyColumns'] ?? [];
+        if (empty($compositeKeyColumns)) {
+            logMessage($logFile, "Missing compositeKeyColumns in $provider config.");
+            continue;
+        }
+
+
         // Process all CSV files in the provider's data folder
         $csvFiles = glob($providerDataFolder . '/*.csv');
         foreach ($csvFiles as $csvFile) {
@@ -83,14 +92,16 @@ function sync() {
                 $deletedCount = 0;
 
                 foreach ($assetsFromCSV as $csvAsset) {
-                    $compositeKey = generateCompositeKey($csvAsset, $config['compositeKeyColumns']);
+                    $compositeKey = generateCompositeKey($csvAsset, $compositeKeyColumns);
                     $matchingAsset = findAssetInAPI($assetsFromAPI, $compositeKey);
 
                     if ($matchingAsset) {
                         // Asset exists in the API, update its value
                         echo "Match found: CSV Key = $compositeKey, API ID = {$matchingAsset['id']}" . PHP_EOL;
+                        // print_r($csvAsset);
                         try {
-                            $csvValueColumn = $config['csvValueColumn'] ?? 'value';
+                            $csvValueColumn = $config['csvValueColumn'];
+                            echo " -> " . $matchingAsset['name'] . "update with value " . $csvAsset[$csvValueColumn] ." old value: " . $matchingAsset['value'] . PHP_EOL;
                             updateAssetValue($client, $apiKey, $apiSecret, $matchingAsset['id'], $csvAsset[$csvValueColumn]);
                         } catch (Exception $e) {
                             echo "Error updating asset value: " . $e->getMessage() . PHP_EOL;
@@ -100,9 +111,10 @@ function sync() {
                         $compositeKeyAttribute = lookupCompositeKeyFoundInDescriptionOrName($matchingAsset);
                         if ($compositeKeyAttribute === 'name') {
                             try {
+                                $csvAssetDescriptionColumn = $config['csvAssetDescriptionColumn'];
                                 updateAssetAttributes($client, $apiKey, $apiSecret, $matchingAsset['id'], [
                                     'description' => "{id:$compositeKey}",
-                                    'name' => $csvAsset['Asset description'],
+                                    'name' => $csvAsset[$csvAssetDescriptionColumn],
                                 ]);
                             } catch (Exception $e) {
                                 echo "Error updating asset attributes: " . $e->getMessage() . PHP_EOL;
@@ -122,8 +134,8 @@ function sync() {
 
                 // Check for assets in the API that are no longer present in the CSV
                 foreach ($assetsFromAPI as $apiAsset) {
-                    $compositeKey = generateCompositeKey($apiAsset, $config['compositeKeyColumns']);
-                    if (!findAssetInCSV($assetsFromCSV, $compositeKey)) {
+                    $compositeKey = generateCompositeKey($apiAsset, $compositeKeyColumns);
+                    if (!findAssetInCSV($assetsFromCSV, $compositeKey, $compositeKeyColumns)) {
                         try {
                             // Set value to 0 for assets not found in the CSV
                             updateAssetValue($client, $apiKey, $apiSecret, $apiAsset['id'], 0);
@@ -138,7 +150,7 @@ function sync() {
                 if (!empty($assetsToCreate)) {
                     logMessage($logFile, "New assets found in $provider:");
                     foreach ($assetsToCreate as $newAsset) {
-                        echo "Asset missing in the API: {id:" . $newAsset['compositeKey'] . "}" . PHP_EOL;
+                        echo "Asset missing in the API: {id:" . $newAsset['compositeKey'] . "} Portfolio: " . $newAsset['Client number'] . PHP_EOL;
                     }
                 }
 
@@ -147,7 +159,7 @@ function sync() {
                 // Move processed CSV to the processed folder with timestamp
                 $timestamp = date('Y-m-d-H:i:s');
                 $processedFile = $processedFolder . '/' . basename($csvFile, '.csv') . "_$timestamp.csv";
-                rename($csvFile, $processedFile);
+                // rename($csvFile, $processedFile);
                 logMessage($logFile, "$csvFile moved to $processedFile");
 
             } catch (Exception $e) {
@@ -287,9 +299,9 @@ function findAssetInAPI(array $assetsFromAPI, string $compositeKey): ?array {
 /**
  * Check if an asset exists in the CSV list
  */
-function findAssetInCSV(array $assetsFromCSV, string $compositeKey): bool {
+function findAssetInCSV(array $assetsFromCSV, string $compositeKey, array $compositeKeyColumns): bool {
     foreach ($assetsFromCSV as $csvAsset) {
-        if (generateCompositeKey($csvAsset) === $compositeKey) {
+        if (generateCompositeKey($csvAsset, $compositeKeyColumns) === $compositeKey) {
             return true;
         }
     }
