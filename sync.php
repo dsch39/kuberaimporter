@@ -100,9 +100,13 @@ function sync() {
                         echo "Match found: CSV Key = $compositeKey, API ID = {$matchingAsset['id']}" . PHP_EOL;
                         // print_r($csvAsset);
                         try {
-                            $csvValueColumn = $config['csvValueColumn'];
-                            echo " -> " . $matchingAsset['name'] . "update with value " . $csvAsset[$csvValueColumn] ." old value: " . $matchingAsset['value'] . PHP_EOL;
-                            updateAssetValue($client, $apiKey, $apiSecret, $matchingAsset['id'], $csvAsset[$csvValueColumn]);
+                            print_r($csvAsset);
+                            print_r($matchingAsset);
+                            // $value = array('amount' => $csvAsset['value'],
+                            //                 'currency' => $csvAsset['currency']);
+                            $value = $csvAsset['value'];
+                            echo " -> " . $matchingAsset['name'] . "update with value " . print_r($value, true) ." old value: " . $matchingAsset['value']['amount'] . " " . $matchingAsset['value']['currency'] . PHP_EOL;
+                            updateAssetValue($client, $apiKey, $apiSecret, $matchingAsset['id'], $value);
                         } catch (Exception $e) {
                             echo "Error updating asset value: " . $e->getMessage() . PHP_EOL;
                         }
@@ -130,6 +134,8 @@ function sync() {
 
                         $assetsToCreate[] = $csvAssetWithCompositeKey;
                     }
+
+                    sleep(1);
                 }
 
                 // Check for assets in the API that are no longer present in the CSV
@@ -150,7 +156,7 @@ function sync() {
                 if (!empty($assetsToCreate)) {
                     logMessage($logFile, "New assets found in $provider:");
                     foreach ($assetsToCreate as $newAsset) {
-                        echo "Asset missing in the API: {id:" . $newAsset['compositeKey'] . "} Portfolio: " . $newAsset['Client number'] . PHP_EOL;
+                        echo "Asset missing in the API: {id:" . $newAsset['compositeKey'] . "} Portfolio: " . $newAsset['clientNumber'] . "} name: " . $newAsset['assetDescription'] . PHP_EOL;
                     }
                 }
 
@@ -212,6 +218,7 @@ function fetchAllAssets(Client $client, $apiKey, $apiSecret) {
         return $allAssets;
     } catch (Exception $e) {
         echo "Error fetching all assets: " . $e->getMessage() . PHP_EOL;
+        exit();
         return [];
     }
 }
